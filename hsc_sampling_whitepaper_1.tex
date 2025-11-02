@@ -1,0 +1,320 @@
+\documentclass[11pt]{article}
+
+% arXiv-compatible packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{graphicx}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{cite}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{pdflscape}
+\usepackage{afterpage}
+\usepackage{xcolor}
+\usepackage{colortbl}
+
+% Define colors for highlighting
+\definecolor{lightblue}{RGB}{213,232,240}
+\definecolor{highlightorange}{RGB}{210,105,30}
+
+% Custom column types
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Title and author information
+\title{Deterministic Hash-Sort-Chunk Sampling for Efficient Database Comparison}
+
+\author{
+Ganesh Raj Munikrishnan \\
+Test Automation Architect \\
+Biogen Capability Center India \\
+Bengaluru, India \\
+\texttt{ganesh.munikrishnan@biogen.com}
+}
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Validating data consistency across heterogeneous databases such as Oracle, Snowflake, or PostgreSQL becomes computationally expensive when datasets grow to tens of millions of rows. Traditional techniques like full outer joins, checksum aggregation, or Merkle tree comparison require full-table scans, heavy data transfer, and pre-computation overheads. This white paper introduces a novel and efficient approach---\textbf{Deterministic Hash-Sort-Chunk Sampling}---that combines row-level hashing, deterministic sorting, and chunk-based sampling to achieve near-uniform record distribution and high probability of mismatch detection across massive datasets.
+\end{abstract}
+
+\section{Background and Motivation}
+
+Enterprises frequently need to verify data consistency after migrations or synchronization between systems like Oracle, Snowflake, and MySQL. Traditional comparison methods often involve transferring entire datasets or relying on database-specific comparison tools. However, such techniques face scalability issues as data volumes increase and when users need to perform ad-hoc comparisons between arbitrary tables without precomputed indices or hash tables. A more scalable and flexible solution is needed, one that reduces data movement, avoids full scans, and can be executed deterministically and efficiently.
+
+\section{Methodology: The Hash-Sort-Chunk Sampling Process}
+
+The proposed method follows a three-step pipeline designed for scalability, reproducibility, and even distribution of differences:
+
+\textbf{Step 1---Row-level Hashing:} Each record's primary or composite key is hashed using a uniform hashing function (e.g., SHA-256 or MD5). The hash serves as a deterministic and uniform identifier that removes dependency on natural ordering. Research has shown that tabulation-based hashing provides strong concentration bounds for sampling applications~\cite{aamand2024hashing,thorup2019fast}.
+
+\textbf{Step 2---Deterministic Sorting:} The entire dataset is sorted based on the hash values. This ensures that records from clustered regions (e.g., same date or partition) are dispersed evenly, effectively randomizing distribution. Hash-based sorting has been proven to destroy spatial correlation in data, enabling uniform distribution regardless of original clustering patterns~\cite{dahlgaard2015hashing}.
+
+\textbf{Step 3---Chunking and Sampling:} The sorted dataset is divided into equal-sized chunks (e.g., 2000 rows each). Sampling one or more records per chunk yields a deterministic yet statistically representative subset that evenly covers the data space~\cite{aamand2024hashing}. Comparing these sampled rows across databases provides high likelihood of detecting inconsistencies.
+
+\section{Evaluation and Observations}
+
+Our experiments conducted on datasets of different sizes (e.g., 50k, 2 million, 20 million rows) demonstrate that Hash-Sort Sampling maintains near-uniform distribution of records and detects introduced mismatches even when they are localized (e.g., all 500 mismatches are localized between rows 20,201--20,700). Unlike random sampling, which may cluster around certain ranges, deterministic hash sorting ensures fair representation across the entire dataset. When differences are sparse, they are evenly scattered across chunks, increasing the probability of detection without scanning the entire table.
+
+\subsection{Distribution Analysis}
+
+Table~\ref{tab:hash-comparison} shows the distribution of 500 clustered mismatches across 25 chunks (chunk size 2000) for different hashing methods (SHA-2, MD5, MurMur, SHA-512) against No Hash-Sort. The 500 mismatches were originally localized between rows 20,201--20,700 in a table with 50k rows.
+
+% Use landscape orientation for the wide table
+\afterpage{\clearpage\begin{landscape}
+
+\begin{longtable}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+\caption{Distribution of 500 clustered mismatches across 25 chunks for different hashing methods}
+\label{tab:hash-comparison} \\
+\hline
+\multirow{2}{*}{\textbf{Chunk}} & \multicolumn{3}{c|}{\textbf{SHA2}} & \multicolumn{3}{c|}{\textbf{MD5}} & \multicolumn{3}{c|}{\textbf{MurMur}} & \multicolumn{3}{c|}{\textbf{SHA512}} & \multicolumn{3}{c|}{\textbf{No Hash-Sort}} \\
+\cline{2-16}
+& \textbf{Match} & \textbf{Diff} & \textbf{Dev} & \textbf{Match} & \textbf{Diff} & \textbf{Dev} & \textbf{Match} & \textbf{Diff} & \textbf{Dev} & \textbf{Match} & \textbf{Diff} & \textbf{Dev} & \textbf{Match} & \textbf{Diff} & \textbf{Dev} \\
+\hline
+\endfirsthead
+
+\multicolumn{16}{c}%
+{{\bfseries Table \thetable\ continued from previous page}} \\
+\hline
+\multirow{2}{*}{\textbf{Chunk}} & \multicolumn{3}{c|}{\textbf{SHA2}} & \multicolumn{3}{c|}{\textbf{MD5}} & \multicolumn{3}{c|}{\textbf{MurMur}} & \multicolumn{3}{c|}{\textbf{SHA512}} & \multicolumn{3}{c|}{\textbf{No Hash-Sort}} \\
+\cline{2-16}
+& \textbf{Match} & \textbf{Diff} & \textbf{Dev} & \textbf{Match} & \textbf{Diff} & \textbf{Dev} & \textbf{Match} & \textbf{Diff} & \textbf{Dev} & \textbf{Match} & \textbf{Diff} & \textbf{Dev} & \textbf{Match} & \textbf{Diff} & \textbf{Dev} \\
+\hline
+\endhead
+
+\hline \multicolumn{16}{|r|}{{Continued on next page}} \\ \hline
+\endfoot
+
+\hline
+\endlastfoot
+
+1 & 1983 & 17 & -3.04 & 1964 & 36 & 16.5 & 1978 & 22 & 2.63 & 1977 & 23 & 3.43 & 2000 & 0 & n.a. \\
+\hline
+2 & 1980 & 20 & -0.04 & 1982 & 18 & -1.5 & 1980 & 20 & 0.63 & 1977 & 23 & 3.43 & 2000 & 0 & n.a. \\
+\hline
+3 & 1979 & 21 & 0.96 & 1983 & 17 & -2.5 & 1990 & 10 & -9.37 & 1984 & 16 & -3.57 & 2000 & 0 & n.a. \\
+\hline
+4 & 1982 & 18 & -2.04 & 1979 & 21 & 1.5 & 1970 & 30 & 10.63 & 1981 & 19 & -0.57 & 2000 & 0 & n.a. \\
+\hline
+5 & 1982 & 18 & -2.04 & 1978 & 22 & 2.5 & 1969 & 31 & 11.63 & 1983 & 17 & -2.57 & \textcolor{highlightorange}{\textbf{1937}} & \textcolor{highlightorange}{\textbf{63}} & n.a. \\
+\hline
+6 & 1976 & 24 & 3.96 & 1984 & 16 & -3.5 & 1981 & 19 & -0.37 & 1980 & 20 & 0.43 & \textcolor{highlightorange}{\textbf{1887}} & \textcolor{highlightorange}{\textbf{113}} & n.a. \\
+\hline
+7 & 1980 & 20 & -0.04 & 1990 & 10 & -9.5 & 1972 & 28 & 8.63 & 1980 & 20 & 0.43 & 2000 & 0 & n.a. \\
+\hline
+8 & 1977 & 23 & 2.96 & 1986 & 14 & -5.5 & 1982 & 18 & -1.37 & 1981 & 19 & -0.57 & 2000 & 0 & n.a. \\
+\hline
+9 & 1975 & 25 & 4.96 & 1979 & 21 & 1.5 & 1974 & 26 & 6.63 & 1987 & 13 & -6.57 & 2000 & 0 & n.a. \\
+\hline
+10 & 1982 & 18 & -2.04 & 1976 & 24 & 4.5 & 1982 & 18 & -1.37 & 1975 & 25 & 5.43 & 2000 & 0 & n.a. \\
+\hline
+11 & 1973 & 27 & 6.96 & 1980 & 20 & 0.5 & 1985 & 15 & -4.37 & 1978 & 22 & 2.43 & 2000 & 0 & n.a. \\
+\hline
+12 & 1982 & 18 & -2.04 & 1983 & 17 & -2.5 & 1971 & 29 & 9.63 & 1986 & 14 & -5.57 & 2000 & 0 & n.a. \\
+\hline
+13 & 1973 & 27 & 6.96 & 1977 & 23 & 3.5 & 1981 & 19 & -0.37 & 1974 & 26 & 6.43 & 2000 & 0 & n.a. \\
+\hline
+14 & 1978 & 22 & 1.96 & 1983 & 17 & -2.5 & 1979 & 21 & 1.63 & 1979 & 21 & 1.43 & 2000 & 0 & n.a. \\
+\hline
+15 & 1985 & 15 & -5.04 & 1982 & 18 & -1.5 & 1976 & 24 & 4.63 & 1985 & 15 & -4.57 & 2000 & 0 & n.a. \\
+\hline
+16 & 1975 & 25 & 4.96 & 1978 & 22 & 2.5 & 1986 & 14 & -5.37 & 1981 & 19 & -0.57 & 2000 & 0 & n.a. \\
+\hline
+17 & 1989 & 11 & -9.04 & 1978 & 22 & 2.5 & 1982 & 18 & -1.37 & 1979 & 21 & 1.43 & \textcolor{highlightorange}{\textbf{1676}} & \textcolor{highlightorange}{\textbf{324}} & n.a. \\
+\hline
+18 & 1982 & 18 & -2.04 & 1980 & 20 & 0.5 & 1984 & 16 & -3.37 & 1976 & 24 & 4.43 & 2000 & 0 & n.a. \\
+\hline
+19 & 1980 & 20 & -0.04 & 1980 & 20 & 0.5 & 1985 & 15 & -4.37 & 1980 & 20 & 0.43 & 2000 & 0 & n.a. \\
+\hline
+20 & 1979 & 21 & 0.96 & 1979 & 21 & 1.5 & 1979 & 21 & 1.63 & 1983 & 17 & -2.57 & 2000 & 0 & n.a. \\
+\hline
+21 & 1976 & 24 & 3.96 & 1975 & 25 & 5.5 & 1986 & 14 & -5.37 & 1976 & 24 & 4.43 & 2000 & 0 & n.a. \\
+\hline
+22 & 1976 & 24 & 3.96 & 1984 & 16 & -3.5 & 1974 & 26 & 6.63 & 1983 & 17 & -2.57 & 2000 & 0 & n.a. \\
+\hline
+23 & 1979 & 21 & 0.96 & 1983 & 17 & -2.5 & 1987 & 13 & -6.37 & 1980 & 20 & 0.43 & 2000 & 0 & n.a. \\
+\hline
+24 & 1986 & 14 & -6.04 & 1976 & 24 & 4.5 & 1983 & 17 & -2.37 & 1978 & 22 & 2.43 & 2000 & 0 & n.a. \\
+\hline
+25 & 1532 & 9 & -11.0 & 1522 & 19 & -0.5 & 1525 & 16 & -3.37 & 1518 & 23 & 3.43 & 1541 & 0 & n.a. \\
+\hline
+\textbf{Totals} & \textbf{2000} & \textbf{20.0} & \textbf{3.97} & \textbf{2000} & \textbf{20.0} & \textbf{4.78} & \textbf{2000} & \textbf{20.0} & \textbf{5.66} & \textbf{2000} & \textbf{20.0} & \textbf{3.40} & \textbf{2000} & \textbf{20.0} & \textbf{68.1} \\
+\hline
+\textbf{min dev} & & & \textbf{6.96} & & & \textbf{16.5} & & & \textbf{11.6} & & & \textbf{6.43} & & & \textbf{0} \\
+\hline
+\textbf{max dev} & & & \textbf{-9.04} & & & \textbf{-9.5} & & & \textbf{-9.37} & & & \textbf{-6.57} & & & \textbf{0} \\
+\hline
+\end{longtable}
+
+\end{landscape}}
+
+\subsection{Distribution of Differences}
+
+Figure~\ref{fig:distribution} illustrates the distribution of mismatched rows across chunks, demonstrating how hash-based methods achieve more uniform distribution compared to the no-hash approach.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{media/media/image1.png}
+\caption{Distribution of Differences (mismatched rows) across chunks}
+\label{fig:distribution}
+\end{figure}
+
+This experiment was repeated for mismatches as low as 50 (0.001\% of rows) clustered around chunk 12, and it was observed that the Hash-Sort-chunk method was able to break the cluster and evenly distribute across 25 chunks with standard deviation of the distribution as low as 1.42.
+
+\subsection{Low Difference Count Analysis}
+
+The following analysis demonstrates the effectiveness of the method even with very low difference counts:
+
+\subsubsection{50 differences clustered in a table with 50,000 rows}
+
+Dataset: 49,541 rows processed, 50 differences, 29 columns, 459 duplicates
+
+\begin{table}[H]
+\centering
+\caption{Comparison Summary for 50 differences}
+\begin{tabular}{|l|c|c|}
+\hline
+\rowcolor{lightblue}
+\textbf{Metric} & \textbf{No Hashing} & \textbf{MD5 Hashing} \\
+\hline
+Rows processed & 49,541 & 49,541 \\
+\hline
+Matching rows & 49,491 & 49,491 \\
+\hline
+Different rows & 50 & 50 \\
+\hline
+Chunks with differences & 2 of 25 (8\%) & 23 of 25 (92\%) \\
+\hline
+Difference distribution & Clustered & Uniform \\
+\hline
+Max mismatches per chunk & 26 & 5 \\
+\hline
+Affected chunks & 5, 17 & All except 9, 11, 13, 14 \\
+\hline
+Duplicate rows skipped & 459 (211 groups) & 459 (211 groups) \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsubsection{10 differences clustered in a table with 50,000 rows}
+
+Dataset: 49,541 rows processed, 10 differences, 29 columns, 459 duplicates
+
+\begin{table}[H]
+\centering
+\caption{Comparison Summary for 10 differences}
+\begin{tabular}{|l|c|c|}
+\hline
+\rowcolor{lightblue}
+\textbf{Metric} & \textbf{No Hashing} & \textbf{MD5 Hashing} \\
+\hline
+Rows processed & 49,541 & 49,541 \\
+\hline
+Matching rows & 49,531 & 49,531 \\
+\hline
+Different rows & 10 & 10 \\
+\hline
+Chunks with differences & 2 of 25 (8\%) & 8 of 25 (32\%) \\
+\hline
+Difference distribution & Clustered & Distributed \\
+\hline
+Max mismatches per chunk & 5 & 2 \\
+\hline
+Affected chunks & 8, 20 & 2, 3, 6, 10, 13, 15, 19, 24, 25 \\
+\hline
+Duplicate rows skipped & 459 (211 groups) & 459 (211 groups) \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Scalability and Performance Implications}
+
+The Hash-Sort-Chunk Sampling method offers several advantages for large-scale database comparisons:
+
+\begin{itemize}
+\item \textbf{Reduced Data Movement:} Only sampled chunks need to be transferred between systems
+\item \textbf{Deterministic Results:} Hash-based sorting ensures reproducible sampling across different executions
+\item \textbf{Early Detection:} Differences are detected in initial chunks, avoiding full table scans
+\item \textbf{Uniform Coverage:} Even localized clusters of differences are distributed across chunks
+\item \textbf{Scalable Architecture:} Method scales linearly with data size, not exponentially
+\end{itemize}
+
+\section{Conclusions and Future Work}
+
+The Deterministic Hash-Sort-Chunk Sampling method demonstrates significant improvements over traditional database comparison techniques. By combining cryptographic hashing with deterministic sorting and chunk-based sampling, the approach achieves:
+
+\begin{enumerate}
+\item Near-uniform distribution of differences across sample chunks
+\item High probability of detecting even small, localized discrepancies
+\item Scalable performance that grows linearly with dataset size
+\item Deterministic and reproducible results across multiple executions
+\end{enumerate}
+
+Future work will focus on optimizing hash function selection for specific data types, investigating adaptive chunk sizing based on data characteristics, and extending the method to handle schema differences between databases.
+
+\section*{Acknowledgments}
+
+The author would like to thank the Biogen Data Engineering team for providing the infrastructure and datasets used in this research, and the database administration teams for their insights into practical challenges of large-scale data comparison.
+
+\begin{thebibliography}{9}
+
+\bibitem{dahlgaard2015hashing}
+Dahlgaard, S., Knudsen, M. B. T., Rotenberg, E., \& Thorup, M. (2015). 
+Hashing for statistics over k-partition. 
+\textit{Proceedings of the forty-seventh annual ACM symposium on Theory of computing (STOC'15)}, pp. 1292-1300. ACM.
+
+\bibitem{hilsman2024}
+Hilsman, S. (2024). 
+Why SQL Joins Don't Work at Scale. 
+\textit{Medium}.
+
+\bibitem{stackoverflow2024}
+Various contributors (2018-2024). 
+Outer join performance. 
+\textit{Stack Overflow Database Administrators Forum}.
+
+\bibitem{dietzfelbinger1992}
+Dietzfelbinger, M., Gil, J., Matias, Y., \& Pippenger, N. (1992). 
+Polynomial hash functions are reliable. 
+In \textit{Proceedings of the 19th International Colloquium on Automata, Languages and Programming (ICALP'92)}, pp. 235-246.
+
+\bibitem{undercover2018}
+Undercover, SQL (2018). 
+Quickly Compare Data in Two Tables Using CHECKSUM and CHECKSUM\_AGG.
+
+\bibitem{aamand2024hashing}
+Aamand, A., Bercea, I. O., Houen, A., Klausen, V., \& Thorup, M. (2024). 
+Hashing for sampling-based estimation. 
+\textit{arXiv preprint arXiv:2411.19394}.
+
+\bibitem{thorup2019fast}
+Thorup, M. (2019). 
+Fast and powerful hashing using tabulation. 
+\textit{Communications of the ACM}, 62(12), 94-102.
+
+\bibitem{ayyalasomayajula2023}
+Ayyalasomayajula, S. and Ramkumar, B. (2023). 
+Optimizing Merkle Tree structures, comparing linear and subtree implementations.
+
+\bibitem{vanlightly2018}
+Vanlightly, J. (2018). 
+Exploring the use of Hash Trees for Data Synchronization.
+
+\bibitem{cormen2022}
+Cormen, T. H., Leiserson, C. E., Rivest, R. L., \& Stein, C. (2022). 
+\textit{Introduction to algorithms} (4th ed.). MIT Press.
+
+\end{thebibliography}
+
+\end{document}
