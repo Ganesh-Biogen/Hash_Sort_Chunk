@@ -28,4 +28,71 @@ Unlike random sampling or Merkle Trees, HSC:
 ## ⚙️ Methodology Summary
 
 ### Step 1 — Hashing
-Each record’s primary/composite key is hashed:
+Each record’s primary/composite key is hashed:hash = SHA256(key_fields)
+
+### Step 2 — Sorting
+All records are sorted by their hash values to remove spatial correlation:dataset.sort(by='hash')
+
+### Step 3 — Chunking & Sampling
+The sorted dataset is split into *C* equal chunks.  
+A deterministic sample is taken per chunk:
+sample_size = 1
+sample = [chunk[i % len(chunk)] for i, chunk in enumerate(chunks)]
+
+
+The probability that a differing row falls into a given chunk follows a **Binomial distribution**:
+\[
+P(k) = \binom{D}{k} \left(\frac{1}{C}\right)^k \left(1 - \frac{1}{C}\right)^{D-k}
+\]
+
+---
+
+## 📊 Advantages
+
+| Method | Strength | Limitation |
+|--------|-----------|-------------|
+| **Checksum / Hash Aggregation** | Detects if differences exist | Cannot locate where or what differs |
+| **Merkle Trees** | Efficient for clustered/sparse differences | Expensive for distributed differences |
+| **Bloom Filters** | Fast membership checks | No field-level diagnostics |
+| **HSC (Proposed)** | Uniform coverage, deterministic, diagnostic | Requires initial sort and hash pass |
+
+---
+
+## 🧠 Example Usage (Python)
+```python
+import hashlib
+import pandas as pd
+
+def hash_key(row, cols):
+    key = ''.join(str(row[c]) for c in cols)
+    return hashlib.sha256(key.encode()).hexdigest()
+
+# Step 1: Hashing
+df['hash'] = df.apply(lambda r: hash_key(r, ['id', 'name']), axis=1)
+
+# Step 2: Sorting
+df_sorted = df.sort_values(by='hash')
+
+# Step 3: Chunking and Sampling
+chunks = [df_sorted[i:i+2000] for i in range(0, len(df_sorted), 2000)]
+samples = [chunk.sample(1, random_state=42) for chunk in chunks]
+
+sample_df = pd.concat(samples)
+
+
+##🧾 Citation
+If you use this method or code, please cite:
+
+Ganesh Raj. Deterministic Hash–Sort–Chunk Sampling for Efficient Database Comparison. ResearchGate, 2025.
+DOI: 10.13140/RG.2.2.27435.50721
+
+
+📬 Contact
+
+For discussions, improvements, or collaboration:
+Author: Ganesh Raj
+LinkedIn / ResearchGate: [ResearchGate Profile](https://www.researchgate.net/profile/Ganesh-Raj-Munikrishnan?enrichId=rgreq-4c2f730cd8f31e9afb3ee4abaa0cf7a8-XXX&enrichSource=Y292ZXJQYWdlOzM5NzE3OTA2NTtBUzoxMTQzMTI4MTcwOTc0MjUyMEAxNzYyMDc5NjgzODYx&el=1_x_10&_esc=publicationCoverPdf)
+
+
+
+
