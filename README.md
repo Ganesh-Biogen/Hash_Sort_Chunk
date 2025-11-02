@@ -57,6 +57,20 @@ P(k) = \binom{D}{k} \left(\frac{1}{C}\right)^k \left(1 - \frac{1}{C}\right)^{D-k
 | **HSC (Proposed)** | Uniform coverage, deterministic, diagnostic | Requires initial sort and hash pass |
 
 ---
+---
+##    📊 Advantages
+If you use this method or code, please cite:
+
+Ganesh Raj. Deterministic Hash–Sort–Chunk Sampling for Efficient Database Comparison. ResearchGate, 2025.
+DOI: 10.13140/RG.2.2.27435.50721
+
+---
+##    📬 Contact
+
+For discussions, improvements, or collaboration:
+Author: Ganesh Raj
+LinkedIn / ResearchGate: [ResearchGate Profile](https://www.researchgate.net/profile/Ganesh-Raj-Munikrishnan?enrichId=rgreq-4c2f730cd8f31e9afb3ee4abaa0cf7a8-XXX&enrichSource=Y292ZXJQYWdlOzM5NzE3OTA2NTtBUzoxMTQzMTI4MTcwOTc0MjUyMEAxNzYyMDc5NjgzODYx&el=1_x_10&_esc=publicationCoverPdf)
+---
 
 ## 🧠 Example Usage (Python)
 ```python
@@ -79,19 +93,7 @@ samples = [chunk.sample(1, random_state=42) for chunk in chunks]
 
 sample_df = pd.concat(samples)
 
----
-##    📊 Advantages
-If you use this method or code, please cite:
 
-Ganesh Raj. Deterministic Hash–Sort–Chunk Sampling for Efficient Database Comparison. ResearchGate, 2025.
-DOI: 10.13140/RG.2.2.27435.50721
-
----
-##    📬 Contact
-
-For discussions, improvements, or collaboration:
-Author: Ganesh Raj
-LinkedIn / ResearchGate: [ResearchGate Profile](https://www.researchgate.net/profile/Ganesh-Raj-Munikrishnan?enrichId=rgreq-4c2f730cd8f31e9afb3ee4abaa0cf7a8-XXX&enrichSource=Y292ZXJQYWdlOzM5NzE3OTA2NTtBUzoxMTQzMTI4MTcwOTc0MjUyMEAxNzYyMDc5NjgzODYx&el=1_x_10&_esc=publicationCoverPdf)
 
 
 
