@@ -79,15 +79,15 @@ samples = [chunk.sample(1, random_state=42) for chunk in chunks]
 
 sample_df = pd.concat(samples)
 
-
-##🧾 Citation
+---
+##    📊 Advantages
 If you use this method or code, please cite:
 
 Ganesh Raj. Deterministic Hash–Sort–Chunk Sampling for Efficient Database Comparison. ResearchGate, 2025.
 DOI: 10.13140/RG.2.2.27435.50721
 
-
-📬 Contact
+---
+##    📬 Contact
 
 For discussions, improvements, or collaboration:
 Author: Ganesh Raj
